@@ -1,7 +1,9 @@
 import java.io.Closeable;
-import java.util.Iterator;
-import java.util.List;
+import java.io.IOException;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Implement the two methods below. We expect this class to be stateless and thread safe.
@@ -36,7 +38,6 @@ public class Census {
      * the 3 most common ages in the format specified by {@link #OUTPUT_FORMAT}.
      */
     public String[] top3Ages(String region) {
-
 //        In the example below, the top three are ages 10, 15 and 12
 //        return new String[]{
 //                String.format(OUTPUT_FORMAT, 1, 10, 38),
@@ -44,7 +45,36 @@ public class Census {
 //                String.format(OUTPUT_FORMAT, 3, 12, 30)
 //        };
 
-        throw new UnsupportedOperationException();
+        //ageCountMap key age and Value count of age
+        Map<Integer,Integer> ageCountMap= new HashMap<>();
+        int count=0;
+        if(region != null && !region.isEmpty()){
+            if(region.matches(OUTPUT_FORMAT)){
+                try (AgeInputIterator ageInputIterator = iteratorFactory.apply(region)) {
+                    ageInputIterator.forEachRemaining(age -> ageCountMap.merge(age,1,(countOne,countTwo)->(countOne+countTwo)));
+
+
+                } catch (IOException e) {
+                    throw new RuntimeException("Iterator hasn't been closed."+e);
+                }
+
+                //ageCountMap sorted descending order , set get first 3 convert to OUTPUT_FORMAT
+                 return ageCountMap.entrySet().stream()
+                         .sorted((e1, e2) -> e1.getValue().compareTo(e2.getValue())).limit(3)
+                                 .map(entry-> String.format(OUTPUT_FORMAT, count+1, entry.getKey(), entry.getValue())) .toArray(String[]::new);
+
+            }
+            else{
+                //wrong region format Exception
+                return new String[]{"1:1=1"};
+            }
+
+
+        }
+        return new String[]{};
+
+
+        //throw new UnsupportedOperationException();
     }
 
     /**
