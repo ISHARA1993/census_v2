@@ -49,26 +49,15 @@ public class Census {
         Map<Integer,Integer> ageCountMap= new HashMap<>();
         int count=0;
         if(region != null && !region.isEmpty()){
-            if(region.matches(OUTPUT_FORMAT)){
                 try (AgeInputIterator ageInputIterator = iteratorFactory.apply(region)) {
                     ageInputIterator.forEachRemaining(age -> ageCountMap.merge(age,1,(countOne,countTwo)->(countOne+countTwo)));
-
-
                 } catch (IOException e) {
                     throw new RuntimeException("Iterator hasn't been closed."+e);
                 }
-
                 //ageCountMap sorted descending order , set get first 3 convert to OUTPUT_FORMAT
                  return ageCountMap.entrySet().stream()
                          .sorted((e1, e2) -> e1.getValue().compareTo(e2.getValue())).limit(3)
                                  .map(entry-> String.format(OUTPUT_FORMAT, count+1, entry.getKey(), entry.getValue())) .toArray(String[]::new);
-
-            }
-            else{
-                //wrong region format Exception
-                return new String[]{"1:1=1"};
-            }
-
 
         }
         return new String[]{};
@@ -83,6 +72,16 @@ public class Census {
      * We expect you to make use of all cores in the machine, specified by {@link #CORES).
      */
     public String[] top3Ages(List<String> regionNames) {
+
+        if(regionNames!=null && !regionNames.isEmpty()){
+            Map<Integer,Integer> ageCountMap= new HashMap<>();
+            List<String[]> topAgesEachRegionList= new ArrayList<>();
+
+            regionNames.forEach(region->topAgesEachRegionList.add(top3Ages(region)));
+
+          //  topAgesEachRegionList.stream().filter(x-> Arrays.stream(x).anyMatch())
+
+        }
 
 //        In the example below, the top three are ages 10, 15 and 12
 //        return new String[]{
