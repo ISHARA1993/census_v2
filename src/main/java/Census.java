@@ -1,3 +1,5 @@
+import exceptionHandler.CensusException;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
@@ -42,7 +44,6 @@ public class Census {
             addingRegionAgeAndCountMapToValues(region,ageCountMap);
             return top3AgeOutputCreate.apply(ageCountMap);
         }
-
         return new String[]{};
     }
 
@@ -85,10 +86,11 @@ public class Census {
         try (AgeInputIterator ageInputIterator = iteratorFactory.apply(region)) {
             ageInputIterator.forEachRemaining(age ->{
                     if(age>=0){
-                        ageCountMap.merge(age,1, Integer::sum);}
+                        ageCountMap.merge(age,1, Integer::sum);
+                    }
             });
         } catch (IOException e) {
-            throw new RuntimeException("Iterator hasn't been closed."+e);
+            throw new CensusException("Iterator hasn't been closed.");
 
         }
     }
