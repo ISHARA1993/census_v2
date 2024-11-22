@@ -1,9 +1,8 @@
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Implement the two methods below. We expect this class to be stateless and thread safe.
@@ -75,11 +74,29 @@ public class Census {
 
         if(regionNames!=null && !regionNames.isEmpty()){
             Map<Integer,Integer> ageCountMap= new HashMap<>();
-            List<String[]> topAgesEachRegionList= new ArrayList<>();
+            int count=0;
 
-            regionNames.forEach(region->topAgesEachRegionList.add(top3Ages(region)));
+            AtomicInteger countIteration= new AtomicInteger(0);
 
-          //  topAgesEachRegionList.stream().filter(x-> Arrays.stream(x).anyMatch())
+            regionNames.forEach(region->{
+
+                countIteration.getAndIncrement();
+                if(region != null && !region.isEmpty()){
+                    try (AgeInputIterator ageInputIterator = iteratorFactory.apply(region)) {
+                        ageInputIterator.forEachRemaining(age -> ageCountMap.merge(age,countIteration.intValue(),(countOne,countTwo)->(countOne+countTwo)));
+                    } catch (IOException e) {
+                        throw new RuntimeException("Iterator hasn't been closed."+e);
+                    }
+
+                }
+
+
+            });
+            return ageCountMap.entrySet().stream()
+                    .sorted((e1, e2) -> e1.getValue().compareTo(e2.getValue())).limit(3)
+                    .map(entry-> String.format(OUTPUT_FORMAT, count+1, entry.getKey(), entry.getValue())) .toArray(String[]::new);
+
+        //   topAgesEachRegionList.stream().filter(x-> Arrays.stream(x).anyMatch(e->e.matches(OUTPUT_FORMAT)?))
 
         }
 
