@@ -46,19 +46,13 @@ public class Census {
 
         //ageCountMap key age and Value count of age
         Map<Integer,Integer> ageCountMap= new HashMap<>();
-        int count=0;
-        if(region != null && !region.isEmpty()){
-                try (AgeInputIterator ageInputIterator = iteratorFactory.apply(region)) {
-                    ageInputIterator.forEachRemaining(age -> ageCountMap.merge(age,1,(countOne,countTwo)->(countOne+countTwo)));
-                } catch (IOException e) {
-                    throw new RuntimeException("Iterator hasn't been closed."+e);
-                }
-                //ageCountMap sorted descending order , set get first 3 convert to OUTPUT_FORMAT
-                 return ageCountMap.entrySet().stream()
-                         .sorted((e1, e2) -> e1.getValue().compareTo(e2.getValue())).limit(3)
-                                 .map(entry-> String.format(OUTPUT_FORMAT, count+1, entry.getKey(), entry.getValue())) .toArray(String[]::new);
 
+        if(region != null && !region.isEmpty()){
+            addingRegionAgeAndCountMapToValues(region,ageCountMap);
+            return top3AgeOutputCreate.apply(ageCountMap);
         }
+
+
         return new String[]{};
 
 
@@ -74,30 +68,16 @@ public class Census {
 
         if(regionNames!=null && !regionNames.isEmpty()){
             Map<Integer,Integer> ageCountMap= new HashMap<>();
-            int count=0;
-
-            AtomicInteger countIteration= new AtomicInteger(0);
 
             regionNames.forEach(region->{
 
-                countIteration.getAndIncrement();
                 if(region != null && !region.isEmpty()){
-                    try (AgeInputIterator ageInputIterator = iteratorFactory.apply(region)) {
-                        ageInputIterator.forEachRemaining(age -> ageCountMap.merge(age,countIteration.intValue(),(countOne,countTwo)->(countOne+countTwo)));
-                    } catch (IOException e) {
-                        throw new RuntimeException("Iterator hasn't been closed."+e);
-                    }
+                    addingRegionAgeAndCountMapToValues(region,ageCountMap);
 
                 }
 
-
             });
-            return ageCountMap.entrySet().stream()
-                    .sorted((e1, e2) -> e1.getValue().compareTo(e2.getValue())).limit(3)
-                    .map(entry-> String.format(OUTPUT_FORMAT, count+1, entry.getKey(), entry.getValue())) .toArray(String[]::new);
-
-        //   topAgesEachRegionList.stream().filter(x-> Arrays.stream(x).anyMatch(e->e.matches(OUTPUT_FORMAT)?))
-
+            return top3AgeOutputCreate.apply(ageCountMap);
         }
 
 //        In the example below, the top three are ages 10, 15 and 12
@@ -117,4 +97,25 @@ public class Census {
      */
     public interface AgeInputIterator extends Iterator<Integer>, Closeable {
     }
+
+
+    /**
+     * This method each region age and ageCount merge to ageCountMap
+    * */
+    private void addingRegionAgeAndCountMapToValues(String region, Map<Integer, Integer> ageCountMap) {
+
+        try (AgeInputIterator ageInputIterator = iteratorFactory.apply(region)) {
+            ageInputIterator.forEachRemaining(age -> ageCountMap.merge(age,1,(countOne,countTwo)->(countOne+countTwo)));
+        } catch (IOException e) {
+            throw new RuntimeException("Iterator hasn't been closed."+e);
+        }
+        //ageCountMap sorted descending order , set get first 3 convert to OUTPUT_FORMAT
+
+    }
+
+    AtomicInteger topThreeAgeCounter= new AtomicInteger(0);
+    Function<Map<Integer,Integer>,String[]> top3AgeOutputCreate = ageCountMap->ageCountMap.entrySet().stream()
+            .sorted((e1, e2) -> e1.getValue().compareTo(e2.getValue())).limit(3)
+            .map(entry-> String.format(OUTPUT_FORMAT, topThreeAgeCounter.getAndIncrement(), entry.getKey(), entry.getValue())) .toArray(String[]::new);
+
 }
