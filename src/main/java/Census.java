@@ -3,6 +3,7 @@ import exceptionHandler.CensusException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -38,7 +39,7 @@ public class Census {
      * the 3 most common ages in the format specified by {@link #OUTPUT_FORMAT}.
      */
     public String[] top3Ages(String region) {
-        Map<Integer,Integer> ageCountMap= new HashMap<>();
+        Map<Integer,Integer> ageCountMap= new ConcurrentHashMap<>();
 
         if(region != null && !region.isEmpty()){
             addingRegionAgeAndCountMapToValues(region,ageCountMap);
@@ -55,14 +56,19 @@ public class Census {
     public String[] top3Ages(List<String> regionNames) {
 
         if(regionNames!=null && !regionNames.isEmpty()){
-            Map<Integer,Integer> ageCountMap= new HashMap<>();
+            Map<Integer,Integer> ageCountMap= new ConcurrentHashMap <>();
 
-            regionNames.forEach(region->{
+//            regionNames.forEach(region->{
+//
+//                if(region != null && !region.isEmpty() && !region.equalsIgnoreCase("empty") && !region.equalsIgnoreCase("invalid") ){
+//                        addingRegionAgeAndCountMapToValues(region,ageCountMap);
+//                    }
+//            });
+            regionNames.parallelStream()
+                    .filter(region->region != null && !region.isEmpty() && !region.equalsIgnoreCase("empty") && !region.equalsIgnoreCase("invalid") )
+                    .forEach( region -> addingRegionAgeAndCountMapToValues(region,ageCountMap));
 
-                if(region != null && !region.isEmpty() && !region.equalsIgnoreCase("empty") && !region.equalsIgnoreCase("invalid") ){
-                        addingRegionAgeAndCountMapToValues(region,ageCountMap);
-                    }
-            });
+
             return ageCountMap.isEmpty()? new String[]{}:top3AgeOutputCreate.apply(ageCountMap);
         }
 
@@ -79,7 +85,9 @@ public class Census {
 
 
     /**
-     * This method each region age and ageCount merge to ageCountMap
+     * Updates the ageCountMap with age counts from the specified region.
+     * @param region the region to process
+     * @param ageCountMap a map to store age counts
     * */
     private void addingRegionAgeAndCountMapToValues(String region, Map<Integer, Integer> ageCountMap) {
 
@@ -97,13 +105,16 @@ public class Census {
 
 
     /**
-     * Streaming count generator
+     * Counter to keep track of the position
      * **/
     AtomicInteger topThreeAgeCounter= new AtomicInteger(1);
 
     /**
-    * ageCountMap sorted descending order , get first 3 convert to OUTPUT_FORMAT
-    * */
+     * Processes the ageCountMap to find the top 3 most common ages.
+     * The map is sorted in descending order of the counts (values).
+     * The first 3 entries are formatted according to OUTPUT_FORMAT,
+     * which includes their position, age, and count, and returned as a String array.
+     */
     Function<Map<Integer,Integer>,String[]> top3AgeOutputCreate = ageCountMap->ageCountMap.entrySet().stream()
             .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue())).limit(3)
             .map(entry-> String.format(OUTPUT_FORMAT, topThreeAgeCounter.getAndIncrement(), entry.getKey(), entry.getValue())) .toArray(String[]::new);
