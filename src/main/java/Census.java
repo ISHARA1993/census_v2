@@ -101,13 +101,17 @@ public class Census {
             throw new CensusException("Iterator hasn't been closed.");
 
         }
+        // I newly add without this ones topThreeAgeCounter keep counting
+        finally {
+            topThreeAgeCounter=new AtomicInteger(1);
+        }
     }
 
 
     /**
      * Counter to keep track of the position
      * **/
-    AtomicInteger topThreeAgeCounter= new AtomicInteger(1);
+    private AtomicInteger topThreeAgeCounter= new AtomicInteger(1);
 
     /**
      * Processes the ageCountMap to find the top 3 most common ages.
@@ -115,7 +119,7 @@ public class Census {
      * The first 3 entries are formatted according to OUTPUT_FORMAT,
      * which includes their position, age, and count, and returned as a String array.
      */
-    Function<Map<Integer,Integer>,String[]> top3AgeOutputCreate = ageCountMap->ageCountMap.entrySet().stream()
+    private final Function<Map<Integer,Integer>,String[]> top3AgeOutputCreate = ageCountMap->ageCountMap.entrySet().stream()
             .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue())).limit(3)
             .map(entry-> String.format(OUTPUT_FORMAT, topThreeAgeCounter.getAndIncrement(), entry.getKey(), entry.getValue())) .toArray(String[]::new);
 
